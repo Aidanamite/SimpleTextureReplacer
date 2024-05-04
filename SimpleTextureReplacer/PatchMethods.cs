@@ -54,6 +54,15 @@ namespace SimpleResourceReplacer
                 foreach (var filter in target.GetComponentsInChildren<MeshFilter>(true))
                     if ((filter.sharedMesh && d.TryGetValue(filter.sharedMesh.name, out var r) && r.TryReplace<Mesh>(out var nm)) || (d.TryGetValue("Mesh:" + filter.name, out r) && r.TryReplace<Mesh>(out nm)))
                         filter.sharedMesh = nm;
+                foreach (var animator in target.GetComponentsInChildren<Animation>())
+                    foreach (var p in d)
+                        if (p.Key.StartsWith("Animation:") && p.Value.TryReplace<AnimationClip>(out var anim))
+                        {
+                            var key = p.Key.Remove(0, "Animation:".Length);
+                            if (animator[key] != null)
+                                animator.RemoveClip(key);
+                            animator.AddClip(anim, p.Key.Remove(0, "Animation:".Length));
+                        }
                 foreach (var skin in target.GetComponentsInChildren<DragonSkin>(true))
                 {
                     foreach (var f in skinMaterials)

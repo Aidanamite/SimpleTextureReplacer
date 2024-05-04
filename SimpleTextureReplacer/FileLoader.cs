@@ -20,6 +20,7 @@ namespace SimpleResourceReplacer
             try
             {
                 t.LoadImage(data, false);
+                t.Compress(true);
             }
             catch (Exception e)
             {
@@ -169,6 +170,8 @@ namespace SimpleResourceReplacer
                 logger.LogError($"Problem loading custom bundle resource \"{file}\". Reason: {metaName} meta asset is not a supported type. Components and GameObjects cannot be used");
                 return false;
             }
+            if (loaded is Texture2D t)
+                t.Compress(true);
             loaded.name = file + "|" + meta[0];
             var data = type == 0 ? Main.SingleAssets.GetOrCreate(rKey) : Main.GameObjects.GetOrCreate(rKey).GetOrCreate(meta[4]);
             if (type == 0)

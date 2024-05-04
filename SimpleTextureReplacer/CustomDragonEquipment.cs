@@ -51,7 +51,7 @@ namespace SimpleResourceReplacer
         }
         protected abstract void Reapply();
         protected abstract GameObject GetAsset(string key);
-        static int uiid = -1;
+        public static int uiid = -1;
         public void Init()
         {
             userItem = new UserItemData()

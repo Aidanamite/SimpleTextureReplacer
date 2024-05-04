@@ -121,65 +121,59 @@ namespace SimpleResourceReplacer
                     Main.logger.LogWarning($"Custom Skin material property target not found [target={md.Target},property={md.Property},value={md.Value}]");
                     continue;
                 }
-                var ind = md.Target.EndsWith("Extra") ? 2 : md.Target.EndsWith("Body") ? 0 : md.Target.EndsWith("Eyes") ? 1 : md.Target.EndsWith("All") ? -2 : -1;
-                if (ind >= ms.Length)
+                if (md.Target.EndsWith("Extra") && ms.Length == 2)
                 {
-                    Main.logger.LogError($"Custom Skin material has too few material layers.");
+                    Main.logger.LogError($"Custom Skin material does not have an Extra layer [target={md.Target},property={md.Property},value={md.Value}]");
                     continue;
                 }
+                var ind = md.Target.EndsWith("Extra") ? 1 : md.Target.EndsWith("Body") ? 0 : md.Target.EndsWith("Eyes") ? ms.Length - 1 : md.Target.EndsWith("All") ? -2 : -1;
                 void TrySetMaterialProperty(Material mat, MaterialProperty prop)
                 {
-                    for (int i = 0; i < mat.shader.GetPropertyCount(); i++)
-                        if (mat.shader.GetPropertyName(i) == md.Property)
+                    if (mat.HasProperty(prop.Property))
+                    {
+                        if (mat.HasTexture(prop.Property))
                         {
-                            var pt = mat.shader.GetPropertyType(i);
-                            if (pt == ShaderPropertyType.Color)
-                            {
-                                if ((md.Value.Length == 6 || md.Value.Length == 8) && uint.TryParse(md.Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var r))
-                                    mat.SetColor(md.Property, new Color32((byte)((r >> 16) & 0xFF), (byte)((r >> 8) & 0xFF), (byte)(r & 0xFF), md.Value.Length == 6 ? (byte)((r >> 24) & 0xFF) : (byte)255));
-                                else
-                                    Main.logger.LogWarning($"Custom Skin material property value is not a valid color (must be hex) [target={md.Target},property={md.Property},value={md.Value}]");
+                            var k = new ResouceKey(prop.Value);
+                            if (Main.SingleAssets.TryGetValue(k, out var r) && r.TryReplace<Texture>(out var tex))
+                                mat.SetTexture(prop.Property, tex);
+                            else
+                                Main.logger.LogWarning($"Custom Skin material property requested texture [bundle={k.bundle},resource={k.resource}] but no texture was loaded [target={prop.Target},property={prop.Property},value={prop.Value}]");
+                        }
+                        else if (mat.HasFloat(prop.Property))
+                        {
+                            if (float.TryParse(prop.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var r))
+                                mat.SetFloat(prop.Property, r);
+                            else
+                                Main.logger.LogWarning($"Custom Skin material property value is not a valid floating point number [target={prop.Target},property={prop.Property},value={prop.Value}]");
+                        }
+                        else if (mat.HasInt(prop.Property))
+                        {
+                            if (int.TryParse(prop.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r))
+                                mat.SetInt(prop.Property, r);
+                            else
+                                Main.logger.LogWarning($"Custom Skin material property value is not a valid integer [target={prop.Target},property={prop.Property},value={prop.Value}]");
+                        }
+                        else if (mat.HasVector(prop.Property))
+                        {
 
-                            }
-                            else if (pt == ShaderPropertyType.Float || pt == ShaderPropertyType.Range)
-                            {
-                                if (float.TryParse(md.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var r))
-                                    mat.SetFloat(md.Property, r);
-                                else
-                                    Main.logger.LogWarning($"Custom Skin material property value is not a valid floating point number [target={md.Target},property={md.Property},value={md.Value}]");
-                            }
-                            else if (pt == ShaderPropertyType.Int)
-                            {
-                                if (int.TryParse(md.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var r))
-                                    mat.SetInt(md.Property, r);
-                                else
-                                    Main.logger.LogWarning($"Custom Skin material property value is not a valid integer [target={md.Target},property={md.Property},value={md.Value}]");
-                            }
-                            else if (pt == ShaderPropertyType.Vector)
-                            {
+                            if ((prop.Value.Length == 6 || prop.Value.Length == 8) && uint.TryParse(prop.Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var r))
+                                mat.SetColor(prop.Property, new Color32((byte)((r >> 16) & 0xFF), (byte)((r >> 8) & 0xFF), (byte)(r & 0xFF), prop.Value.Length == 6 ? (byte)((r >> 24) & 0xFF) : (byte)255));
+                            else
                                 try
                                 {
-                                    var a = Newtonsoft.Json.JsonConvert.DeserializeObject<float[]>(md.Value, new Newtonsoft.Json.JsonSerializerSettings() { Culture = CultureInfo.InvariantCulture });
-                                    mat.SetVector(md.Property, new Vector4(a.Length > 0 ? a[0] : 0, a.Length > 1 ? a[1] : 0, a.Length > 2 ? a[2] : 0, a.Length > 3 ? a[3] : 0));
+                                    var a = Newtonsoft.Json.JsonConvert.DeserializeObject<float[]>(prop.Value, new Newtonsoft.Json.JsonSerializerSettings() { Culture = CultureInfo.InvariantCulture });
+                                    mat.SetVector(prop.Property, new Vector4(a.Length > 0 ? a[0] : 0, a.Length > 1 ? a[1] : 0, a.Length > 2 ? a[2] : 0, a.Length > 3 ? a[3] : 0));
                                 }
                                 catch
                                 {
-                                    Main.logger.LogWarning($"Custom Skin material property value is not a valid vector (must be a set of floating point numbers, example: \"[0, 1.3, 2]\") [target={md.Target},property={md.Property},value={md.Value}]");
+                                    Main.logger.LogWarning($"Custom Skin material property value is not a valid vector/color (must be hex or an array of floating point numbers, example: \"[0, 1.3, 2]\") [target={prop.Target},property={prop.Property},value={prop.Value}]");
                                 }
-                            }
-                            else if (pt == ShaderPropertyType.Texture)
-                            {
-                                var k = new ResouceKey(md.Value);
-                                if (Main.SingleAssets.TryGetValue(k, out var r) && r.TryReplace<Texture>(out var tex))
-                                    mat.SetTexture(md.Property, tex);
-                                else
-                                    Main.logger.LogWarning($"Custom Skin material property requested texture [bundle={k.bundle},resource={k.resource}] but no texture was loaded [target={md.Target},property={md.Property},value={md.Value}]");
-                            }
-                            else
-                                Main.logger.LogWarning($"Custom Skin material property is of an unsupported property type [target={md.Target},property={md.Property},value={md.Value}]");
-                            return;
                         }
-                    Main.logger.LogWarning($"Custom Skin material does not have that property [target={md.Target},property={md.Property},value={md.Value}]");
+                        else
+                            Main.logger.LogInfo($"Material {mat.name} ({mat.shader.name}) has property {prop.Property} but its type is unknown");
+                    }
+                    else
+                        Main.logger.LogWarning($"Custom Skin material does not have that property [target={prop.Target},property={prop.Property},value={prop.Value}]");
                 }
                 foreach (var m in ind == -2 ? ms : ind == -1 ? new[] { ms[0], ms[ms.Length - 1] } : new[] { ms[ind] })
                     TrySetMaterialProperty(m,md);
