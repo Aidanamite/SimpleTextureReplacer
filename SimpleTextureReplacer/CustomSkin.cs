@@ -24,21 +24,39 @@ namespace SimpleResourceReplacer
         [OptionalField]
         public MaterialProperty[] HWMaterialData;
         [OptionalField]
-        public Shaders BabyShaders;
+        public PartPaths BabyShaders;
         [OptionalField]
-        public Shaders TeenShaders;
+        public PartPaths TeenShaders;
         [OptionalField]
-        public Shaders AdultShaders;
+        public PartPaths AdultShaders;
         [OptionalField]
-        public Shaders TitanShaders;
+        public PartPaths TitanShaders;
+        [OptionalField]
+        public PartPaths HWBabyShaders;
+        [OptionalField]
+        public PartPaths HWTeenShaders;
+        [OptionalField]
+        public PartPaths HWAdultShaders;
+        [OptionalField]
+        public PartPaths HWTitanShaders;
         [Serializable]
-        public class Shaders {
+        public class PartPaths
+        {
             [OptionalField]
             public string Body;
             [OptionalField]
             public string Eyes;
             [OptionalField]
             public string Extra;
+            [OptionalField]
+            public bool BodyIsMaterial;
+            [OptionalField]
+            public bool EyesIsMaterial;
+            [OptionalField]
+            public bool ExtraIsMaterial;
+            public (string path, bool material) BodySettings => (Body, BodyIsMaterial);
+            public (string path, bool material) EyesSettings => (Eyes, EyesIsMaterial);
+            public (string path, bool material) ExtraSettings => (Extra, ExtraIsMaterial);
         }
         //[OptionalField]
         //public string FireballPrefab; // Excluded until a good system is figured for detected "allowed" fireballs for a specific dragon
@@ -103,6 +121,7 @@ namespace SimpleResourceReplacer
                         Main.logger.LogWarning($"Custom Skin requested titan mesh [bundle={k.bundle},resource={k.resource}] but no mesh was loaded");
                 }
             }
+            EnsureMaterials();
             ApplyMaterialData(skin, MaterialData);
             if (HWMaterialData != null && HWMaterialData.Length != 0)
             {
@@ -129,6 +148,8 @@ namespace SimpleResourceReplacer
                 var ind = md.Target.EndsWith("Extra") ? 1 : md.Target.EndsWith("Body") ? 0 : md.Target.EndsWith("Eyes") ? ms.Length - 1 : md.Target.EndsWith("All") ? -2 : -1;
                 void TrySetMaterialProperty(Material mat, MaterialProperty prop)
                 {
+                    if (!mat || !mat.shader)
+                        return;
                     if (mat.HasProperty(prop.Property))
                     {
                         if (mat.HasTexture(prop.Property))
@@ -137,7 +158,7 @@ namespace SimpleResourceReplacer
                             if (Main.SingleAssets.TryGetValue(k, out var r) && r.TryReplace<Texture>(out var tex))
                                 mat.SetTexture(prop.Property, tex);
                             else
-                                Main.logger.LogWarning($"Custom Skin material property requested texture [bundle={k.bundle},resource={k.resource}] but no texture was loaded [target={prop.Target},property={prop.Property},value={prop.Value}]");
+                                Main.logger.LogWarning($"Custom Skin material property requested texture [bundle={k.bundle},resource={k.resource}] but no texture was found [target={prop.Target},property={prop.Property},value={prop.Value}]");
                         }
                         else if (mat.HasFloat(prop.Property))
                         {
@@ -210,12 +231,49 @@ namespace SimpleResourceReplacer
             item.Category = new[] { new ItemDataCategory() { CategoryId = Category.DragonSkin } };
             skin = new GameObject(item.AssetName.After('/')).AddComponent<DragonSkin>();
             Object.DontDestroyOnLoad(skin.gameObject);
+            void EnsureShader(ref PartPaths paths, PartPaths plate = null)
+            {
+                if (paths == null)
+                {
+                    if (plate == null)
+                        paths = new PartPaths();
+                    else
+                    {
+                        paths = plate;
+                        return;
+                    }
+                }
+                if (paths.Body == null)
+                {
+                    paths.Body = plate == null ? MainShader : plate.Body;
+                    paths.BodyIsMaterial = plate == null ? false : plate.BodyIsMaterial;
+                }
+                if (paths.Eyes == null)
+                {
+                    paths.Eyes = plate == null ? MainShader : plate.Eyes;
+                    paths.EyesIsMaterial = plate == null ? false : plate.EyesIsMaterial;
+                }
+                if (paths.Eyes == null && plate != null)
+                {
+                    paths.Eyes = plate.Extra;
+                    paths.EyesIsMaterial = plate.ExtraIsMaterial;
+                }
+            }
+            EnsureShader(ref BabyShaders);
+            EnsureShader(ref TeenShaders);
+            EnsureShader(ref AdultShaders);
+            EnsureShader(ref TitanShaders);
+            EnsureShader(ref HWBabyShaders,BabyShaders);
+            EnsureShader(ref HWTeenShaders,TeenShaders);
+            EnsureShader(ref HWAdultShaders,AdultShaders);
+            EnsureShader(ref HWTitanShaders,TitanShaders);
             if (MaterialData != null)
             {
-                var hasBaby = 0;
-                var hasTeen = 0;
-                var hasAdult = 0;
-                var hasTitan = 0;
+                int GetInitHas(PartPaths paths) => paths.ExtraIsMaterial && paths.Extra != null ? 2 : (paths.BodyIsMaterial && paths.Body != null) || (paths.EyesIsMaterial && paths.Eyes != null) ? 1 : 0;
+                var hasBaby = GetInitHas(BabyShaders);
+                var hasTeen = GetInitHas(TeenShaders);
+                var hasAdult = GetInitHas(AdultShaders);
+                var hasTitan = GetInitHas(TitanShaders);
                 void UpdateHas(string target, ref int has)
                 {
                     if (has == 2)
@@ -234,27 +292,39 @@ namespace SimpleResourceReplacer
                         UpdateHas(d.Target, ref hasAdult);
                     else if (d.Target.StartsWith("Titan"))
                         UpdateHas(d.Target, ref hasTitan);
-                Material[] CreateMaterials(int has,string prefix,Shaders shaders)
+                Material[] CreateMaterials(int has)
                 {
                     if (has == 1)
-                        return new[]
-                        {
-                            CreateFromTemplate(prefix + "Body",shaders?.Body),
-                            CreateFromTemplate(prefix + "Eyes",shaders?.Eyes)
-                        };
+                        return new Material[2];
                     if (has == 2)
-                        return new[]
-                        {
-                            CreateFromTemplate(prefix + "Body",shaders?.Body),
-                            CreateFromTemplate(prefix + "Extra",shaders?.Extra ?? TransparentShader),
-                            CreateFromTemplate(prefix + "Eyes",shaders?.Eyes)
-                        };
+                        return new Material[3];
                     return null;
                 }
-                skin._BabyMaterials = CreateMaterials(hasBaby,"Baby",BabyShaders);
-                skin._TeenLODMaterials = skin._TeenMaterials = CreateMaterials(hasTeen, "Teen",TeenShaders);
-                skin._LODMaterials = skin._Materials = CreateMaterials(hasAdult, "",AdultShaders);
-                skin._TitanLODMaterials = skin._TitanMaterials = CreateMaterials(hasTitan, "Titan",TitanShaders);
+                void CheckShaderExtra(int has, PartPaths shaders, PartPaths hwshaders)
+                {
+                    if (has == 2)
+                    {
+                        if (shaders.Extra == null)
+                        {
+                            shaders.Extra = TransparentShader;
+                            shaders.ExtraIsMaterial = false;
+                        }
+                        if (hwshaders.Extra == null)
+                        {
+                            hwshaders.Extra = shaders.Extra;
+                            hwshaders.ExtraIsMaterial = shaders.ExtraIsMaterial;
+                        }
+                    }
+                }
+                CheckShaderExtra(hasBaby, BabyShaders, HWBabyShaders);
+                CheckShaderExtra(hasTeen, TeenShaders, HWTeenShaders);
+                CheckShaderExtra(hasAdult, AdultShaders, HWAdultShaders);
+                CheckShaderExtra(hasTitan, TitanShaders, HWTitanShaders);
+
+                skin._BabyMaterials = CreateMaterials(hasBaby);
+                skin._TeenLODMaterials = skin._TeenMaterials = CreateMaterials(hasTeen);
+                skin._LODMaterials = skin._Materials = CreateMaterials(hasAdult);
+                skin._TitanLODMaterials = skin._TitanMaterials = CreateMaterials(hasTitan);
             }
             skin._RenderersToChange = TargetRenderers;
             if (HWMaterialData != null)
@@ -266,18 +336,71 @@ namespace SimpleResourceReplacer
                     hwskin = Object.Instantiate(skin);
                     Object.DontDestroyOnLoad(hwskin.gameObject);
                     hwskin.name = "HW" + skin.name;
-                    hwskin._BabyMaterials.InstatiateAll((n, o) => n.name = "HW" + o.name);
-                    hwskin._TeenMaterials.InstatiateAll((n, o) => n.name = "HW" + o.name);
+                    hwskin._BabyMaterials.InstatiateAll();
+                    hwskin._TeenMaterials.InstatiateAll();
                     hwskin._TeenLODMaterials = hwskin._TeenMaterials;
-                    hwskin._Materials.InstatiateAll((n, o) => n.name = "HW" + o.name);
+                    hwskin._Materials.InstatiateAll();
                     hwskin._LODMaterials = hwskin._Materials;
-                    hwskin._TitanMaterials.InstatiateAll((n, o) => n.name = "HW" + o.name);
+                    hwskin._TitanMaterials.InstatiateAll();
                     hwskin._TitanLODMaterials = hwskin._TitanMaterials;
                 }
             }
+            EnsureMaterials();
             customAssets[item.AssetName.After('/')] = this;
             if (Main.logging)
                 Main.logger.LogInfo($"Created skin {Name} as asset {item.AssetName.After('/')}");
+        }
+        void EnsureMaterials()
+        {
+            foreach ((DragonSkin skin, PartPaths baby, PartPaths teen, PartPaths adult, PartPaths titan) s in new[] {
+                (skin, BabyShaders, TeenShaders, AdultShaders, TitanShaders),
+                (hwskin, HWBabyShaders ?? BabyShaders, HWTeenShaders ?? TeenShaders, HWAdultShaders ?? AdultShaders, HWTitanShaders ?? TitanShaders)
+            })
+                if (s.skin)
+                    foreach ((Material[] materials, PartPaths paths) a in new[] {
+                        (s.skin._BabyMaterials, s.baby),
+                        (s.skin._TeenMaterials, s.teen),
+                        (s.skin._Materials, s.adult),
+                        (s.skin._TitanMaterials, s.titan)
+                    })
+                    {
+                        if (a.materials == null || a.paths == null)
+                            continue;
+                        for (int i = 0; i < a.materials.Length; i++)
+                            if (!a.materials[i] || !a.materials[i].shader)
+                            {
+                                var t = i == 0 ? a.paths.BodySettings : i == a.materials.Length - 1 ? a.paths.EyesSettings : a.paths.ExtraSettings;
+                                if (t.path == null)
+                                    continue;
+                                var name = ItemID
+                                        + (s.skin == skin ? "" : "HW")
+                                        + (s.skin._BabyMaterials == a.materials ? "Baby" : s.skin._TeenMaterials == a.materials ? "Teen" : s.skin._TitanMaterials == a.materials ? "Titan" : "Adult")
+                                        + (i == 0 ? "Body" : i == a.materials.Length - 1 ? "Eyes" : "Extra");
+                                if (t.material)
+                                {
+                                    if (Main.SingleAssets.TryGetValue(new ResouceKey(t.path), out var r) && r.TryReplace<Material>(out var m) && m && m.shader)
+                                    {
+                                        var nm = Object.Instantiate(m);
+                                        nm.name = name;
+                                        Main.Generated.GetOrCreate(m.name).Add(nm);
+                                        a.materials[i] = nm;
+                                    }
+                                    else
+                                    {
+                                        Main.logger.LogWarning($"Material prefab asset \"{t.path}\" could not be found for \"{name}\"");
+                                        a.materials[i] = null;
+                                    }
+                                }
+                                else
+                                {
+                                    if (a.materials[i])
+                                        Object.Destroy(a.materials[i]);
+                                    a.materials[i] = CreateFromTemplate(name, t.path);
+                                    if (!a.materials[i])
+                                        Main.logger.LogWarning($"Shader asset \"{t.path}\" could not be found for \"{name}\"");
+                                }
+                            }
+                    }
         }
         class TemplateCache
         {

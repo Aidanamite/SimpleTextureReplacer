@@ -21,7 +21,14 @@ namespace SimpleResourceReplacer
         public ResouceKey(string FullResourceString)
         {
             resource = FullResourceString.After('/');
-            bundle = FullResourceString.Remove(FullResourceString.Length - 1 - resource.Length);
+            if (resource == FullResourceString)
+            {
+                UnityEngine.Debug.LogWarning($"Resource path \"{FullResourceString}\" does not appear to be a valid resource path!");
+                bundle = FullResourceString;
+                resource = null;
+            }
+            else
+                bundle = FullResourceString.Remove(FullResourceString.Length - 1 - resource.Length);
         }
         public static implicit operator ResouceKey((string bundle, string resource) tuple) => new ResouceKey(tuple.bundle, tuple.resource);
     }

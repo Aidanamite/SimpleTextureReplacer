@@ -19,6 +19,12 @@
 			"Target": "TitanEye",
 			"Property": "_Glossiness",
 			"Value": "0.9" // Despite being a number, you still need to write the number in " "
+		},
+		{
+			"Target": "TeenExtra",
+			"Property": "_SomeProperty",
+			"Value": "[10,5,2,1]" // For vector values, you need to have [ ] around them and , between each value. Also, it must still have the " "
+			// Extra Note: Color values can be written as a vector and vis versa
 		}
 	],
 	"HWMaterialData": [ // Optional: This is used to set the appearance of the skin in the hidden world. If not included, it will use the default hidden world skin. If left empty "[]", it will just keep the skin enabled in the hidden world. If material data is provided, it will add those properties to the skin when entering the hidden world
@@ -57,21 +63,65 @@
 		// • If you want to use a different shader that's already in the game, you can just write the name like "Standard/Unlit"
 		"Body": "Default", // Optional: If not set, will default to "Default"
 		"Eyes": "Default", // Optional: If not set, will default to "Default"
-		"Extra": "Extra" // Optional: If not set, will default to "Extra". The "extra" material will only be created if some material properties are set for it
+		"Extra": "Extra", // Optional: If not set, will default to "Extra". The "extra" material will only be created if some material properties are set for it
+		"IsBodyMaterial": false, // Optional: If not set, will default to false. If true, the "Body" value will be treated as a resource path to a material instead of a shader
+		"IsEyesMaterial": false, // Optional: If not set, will default to false. Same as "IsBodyMaterial" but for the "Eyes" property
+		"IsExtraMaterial": false // Optional: If not set, will default to false. Same as "IsBodyMaterial" but for the "Extra" property
 	},
 	"TeenShaders: { // Optional: Same as "BabyShaders" but applies for the teen materials
 		"Body": "Default",
 		"Eyes": "Default",
-		"Extra": "Extra"
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
 	},
 	"AdultShaders: { // Optional: Same as "BabyShaders" but applies for the adult materials
 		"Body": "Default",
 		"Eyes": "Default",
-		"Extra": "Extra"
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
 	},
 	"TitanShaders: { // Optional: Same as "BabyShaders" but applies for the titan materials
 		"Body": "Default",
 		"Eyes": "Default",
-		"Extra": "Extra"
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
+	},
+	"HWBabyShaders: { // Optional: Same as "BabyShaders" but applies for the hidden world baby materials
+		"Body": "Default",
+		"Eyes": "Default",
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
+	},
+	"HWTeenShaders: { // Optional: Same as "BabyShaders" but applies for the hidden world teen materials
+		"Body": "Default",
+		"Eyes": "Default",
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
+	},
+	"HWAdultShaders: { // Optional: Same as "BabyShaders" but applies for the hidden world adult materials
+		"Body": "Default",
+		"Eyes": "Default",
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
+	},
+	"HWTitanShaders: { // Optional: Same as "BabyShaders" but applies for the hidden world titan materials
+		"Body": "Default",
+		"Eyes": "Default",
+		"Extra": "Extra",
+		"IsBodyMaterial": false,
+		"IsEyesMaterial": false,
+		"IsExtraMaterial": false
 	}
 }
