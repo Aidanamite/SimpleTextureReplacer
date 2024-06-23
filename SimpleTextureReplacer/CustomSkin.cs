@@ -135,7 +135,7 @@ namespace SimpleResourceReplacer
             foreach (var md in data)
             {
                 var ms = md.Target.StartsWith("Baby") ? skin._BabyMaterials : md.Target.StartsWith("Teen") ? skin._TeenMaterials : md.Target.StartsWith("Adult") ? skin._Materials : md.Target.StartsWith("Titan") ? skin._TitanMaterials : null;
-                if (ms == null)
+                if (ms == null || ms.Length == 0)
                 {
                     Main.logger.LogWarning($"Custom Skin material property target not found [target={md.Target},property={md.Property},value={md.Value}]");
                     continue;
@@ -149,7 +149,11 @@ namespace SimpleResourceReplacer
                 void TrySetMaterialProperty(Material mat, MaterialProperty prop)
                 {
                     if (!mat || !mat.shader)
+                    {
+                        if (Main.logging)
+                            Main.logger.LogWarning("Material was null. Cannot set material properties");
                         return;
+                    }
                     if (mat.HasProperty(prop.Property))
                     {
                         if (mat.HasTexture(prop.Property))
@@ -283,15 +287,18 @@ namespace SimpleResourceReplacer
                     else if (has == 0)
                         has = 1;
                 }
-                foreach (var d in MaterialData)
-                    if (d.Target.StartsWith("Baby"))
-                        UpdateHas(d.Target, ref hasBaby);
-                    else if (d.Target.StartsWith("Teen"))
-                        UpdateHas(d.Target, ref hasTeen);
-                    else if (d.Target.StartsWith("Adult"))
-                        UpdateHas(d.Target, ref hasAdult);
-                    else if (d.Target.StartsWith("Titan"))
-                        UpdateHas(d.Target, ref hasTitan);
+                foreach (var da in new[] { MaterialData, HWMaterialData })
+                    foreach (var d in da)
+                        if (d.Target.StartsWith("Baby"))
+                            UpdateHas(d.Target, ref hasBaby);
+                        else if (d.Target.StartsWith("Teen"))
+                            UpdateHas(d.Target, ref hasTeen);
+                        else if (d.Target.StartsWith("Adult"))
+                            UpdateHas(d.Target, ref hasAdult);
+                        else if (d.Target.StartsWith("Titan"))
+                            UpdateHas(d.Target, ref hasTitan);
+                        else
+                            Main.logger.LogWarning("Unrecorgnised target !!! " + d.Target);
                 Material[] CreateMaterials(int has)
                 {
                     if (has == 1)
