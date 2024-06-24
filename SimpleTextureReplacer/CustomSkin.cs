@@ -288,17 +288,18 @@ namespace SimpleResourceReplacer
                         has = 1;
                 }
                 foreach (var da in new[] { MaterialData, HWMaterialData })
-                    foreach (var d in da)
-                        if (d.Target.StartsWith("Baby"))
-                            UpdateHas(d.Target, ref hasBaby);
-                        else if (d.Target.StartsWith("Teen"))
-                            UpdateHas(d.Target, ref hasTeen);
-                        else if (d.Target.StartsWith("Adult"))
-                            UpdateHas(d.Target, ref hasAdult);
-                        else if (d.Target.StartsWith("Titan"))
-                            UpdateHas(d.Target, ref hasTitan);
-                        else
-                            Main.logger.LogWarning("Unrecorgnised target !!! " + d.Target);
+                    if (da != null)
+                        foreach (var d in da)
+                            if (d.Target.StartsWith("Baby"))
+                                UpdateHas(d.Target, ref hasBaby);
+                            else if (d.Target.StartsWith("Teen"))
+                                UpdateHas(d.Target, ref hasTeen);
+                            else if (d.Target.StartsWith("Adult"))
+                                UpdateHas(d.Target, ref hasAdult);
+                            else if (d.Target.StartsWith("Titan"))
+                                UpdateHas(d.Target, ref hasTitan);
+                            else
+                                Main.logger.LogWarning("Unrecorgnised target !!! " + d.Target);
                 Material[] CreateMaterials(int has)
                 {
                     if (has == 1)
