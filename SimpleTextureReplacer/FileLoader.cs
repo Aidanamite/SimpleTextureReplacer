@@ -10,6 +10,7 @@ namespace SimpleResourceReplacer
     {
         public abstract Object LoadFile(byte[] data, out Exception exception);
         public abstract bool TryLoadMeta(Object obj, Keys keys, string file, string metaName, string[] meta, ManualLogSource logger);
+        public virtual void CleanUp(Object obj) { }
     }
     
     public class TextureLoader : FileLoader
@@ -99,12 +100,20 @@ namespace SimpleResourceReplacer
 
     public class BundleLoader : FileLoader
     {
+        class BundleHolder : ScriptableObject
+        {
+            public AssetBundle bundle;
+        }
+
         public override Object LoadFile(byte[] data, out Exception exception)
         {
             try
             {
                 exception = null;
-                return AssetBundle.LoadFromMemory(data);
+                var b = AssetBundle.LoadFromMemory(data);
+                var holder = ScriptableObject.CreateInstance<BundleHolder>();
+                holder.bundle = b;
+                return holder;
             }
             catch (Exception e)
             {
@@ -112,6 +121,7 @@ namespace SimpleResourceReplacer
                 return null;
             }
         }
+
         public override bool TryLoadMeta(Object obj, Keys keys, string file, string metaName, string[] meta, ManualLogSource logger)
         {
             if (meta.Length < 3)
@@ -119,7 +129,7 @@ namespace SimpleResourceReplacer
                 logger.LogError($"Problem loading custom bundle resource \"{file}\". Reason: {metaName} meta is invalid... You really shouldn't be seeing this message");
                 return false;
             }
-            if (!(obj as AssetBundle).Contains(meta[0]))
+            if (!(obj as BundleHolder).bundle.Contains(meta[0]))
             {
                 logger.LogError($"Problem loading custom bundle resource \"{file}\". Reason: {metaName} meta asset \"{meta[0]}\" not found in bundle");
                 return false;
@@ -160,7 +170,7 @@ namespace SimpleResourceReplacer
                     }
                 }
             }
-            var loaded = (obj as AssetBundle).LoadAsset(meta[0]);
+            var loaded = (obj as BundleHolder).bundle.LoadAsset(meta[0]);
             if (loaded is Component || loaded is GameObject)
             {
                 if (loaded is Component c)
@@ -182,6 +192,11 @@ namespace SimpleResourceReplacer
             data.AddAsset(loaded, q);
             logger.LogInfo($"{meta[1].CapitalizeInvariant()} {ReplacementAssets.SimplfyType(loaded.GetType()).Name.ToLowerInvariant()} \"{loaded.name}\" loaded from bundle {obj.name}\n{(type == 0 ? $"[bundle={rKey.bundle},resource={rKey.resource}]" : $"[bundle={rKey.bundle},resource={rKey.resource},value={meta[3]}]")}");
             return true;
+        }
+
+        public override void CleanUp(Object obj)
+        {
+            (obj as BundleHolder).bundle.Unload(false);
         }
     }
 }

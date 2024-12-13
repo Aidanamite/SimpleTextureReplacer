@@ -16,7 +16,7 @@ using BepInEx.Logging;
 
 namespace SimpleResourceReplacer
 {
-    [BepInPlugin("com.aidanamite.SimpleTextureReplacer", "Simple Resource Replacer", "2.4.3")]
+    [BepInPlugin("com.aidanamite.SimpleTextureReplacer", "Simple Resource Replacer", "2.4.4")]
     public class Main : BaseUnityPlugin
     {
         public const string CustomBundleName = "RS_SHARED/customassets";
@@ -148,8 +148,15 @@ namespace SimpleResourceReplacer
                 return;
             }
             load.name = file;
-            for (int i = 0; i < metas.Count; i++)
-                hasLoaded = loader.TryLoadMeta(load, keys, file, i.ToPlaceString(), metas[i], logger) || hasLoaded;
+            try
+            {
+                for (int i = 0; i < metas.Count; i++)
+                    hasLoaded = loader.TryLoadMeta(load, keys, file, i.ToPlaceString(), metas[i], logger) || hasLoaded;
+            }
+            finally
+            {
+                loader.CleanUp(load);
+            }
             if (hasLoaded)
                 Loaded[file] = (load, keys);
             else
