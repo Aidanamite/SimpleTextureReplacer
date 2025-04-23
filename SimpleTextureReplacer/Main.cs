@@ -16,9 +16,10 @@ using BepInEx.Logging;
 
 namespace SimpleResourceReplacer
 {
-    [BepInPlugin("com.aidanamite.SimpleTextureReplacer", "Simple Resource Replacer", "2.4.4")]
+    [BepInPlugin("com.aidanamite.SimpleTextureReplacer", "Simple Resource Replacer", VERSION)]
     public class Main : BaseUnityPlugin
     {
+        public const string VERSION = "2.4.6";
         public const string CustomBundleName = "RS_SHARED/customassets";
         public static string CustomResources = Environment.CurrentDirectory + "\\Resource Packs";
         public static Dictionary<ResouceKey, ReplacementAssets> SingleAssets = new Dictionary<ResouceKey, ReplacementAssets>();

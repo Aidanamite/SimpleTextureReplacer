@@ -117,5 +117,12 @@ namespace SimpleResourceReplacer
                 return original;
             return original.Remove(0, split + (inclusive ? 0 : 1));
         }
+
+        public static T Clone<T>(this T obj,string newName) where T : Object
+        {
+            var n = Object.Instantiate(obj);
+            n.name = newName;
+            return n;
+        }
     }
 }
