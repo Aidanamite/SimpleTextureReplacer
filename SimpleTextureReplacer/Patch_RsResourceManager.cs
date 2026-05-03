@@ -14,17 +14,17 @@ namespace SimpleResourceReplacer
         {
             if (Main.logging)
                 Main.logger.LogInfo($"LoadAssetFromBundleAsync  bundle={inBundleURL},resource={inAssetName}");
-            if ((typeof(Component).IsAssignableFrom(inType) || inType == typeof(GameObject)) ? Main.GameObjects.ContainsKey((inBundleURL, inAssetName)) : Main.SingleAssets.ContainsKey((inBundleURL, inAssetName)))
+            if (Main.SingleAssets.ContainsKey((inBundleURL, inAssetName)) || ((typeof(Component).IsAssignableFrom(inType) || inType == typeof(GameObject)) && Main.GameObjects.ContainsKey((inBundleURL, inAssetName))))
             {
                 var originalCallback = inCallback;
                 inCallback = (url, even, progress, obj, data) =>
                 {
                     if (even == RsResourceLoadEvent.COMPLETE && obj as Object)
                     {
+                        if (Main.SingleAssets.TryGetValue((inBundleURL, inAssetName), out var r) && r.TryReplace(obj.GetType(), out var no))
+                            obj = no;
                         if (typeof(Component).IsAssignableFrom(inType) || inType == typeof(GameObject))
                             PatchMethods.TryChange(inBundleURL, inAssetName, obj is Component c ? c.gameObject : (GameObject)obj);
-                        else if (Main.SingleAssets.TryGetValue((inBundleURL, inAssetName), out var r) && r.TryReplace(obj.GetType(), out var no))
-                            obj = no;
                     }
                     originalCallback?.Invoke(url, even, progress, obj, data);
                 };

@@ -171,15 +171,6 @@ namespace SimpleResourceReplacer
                 }
             }
             var loaded = (obj as BundleHolder).bundle.LoadAsset(meta[0]);
-            if (loaded is Component || loaded is GameObject)
-            {
-                if (loaded is Component c)
-                    Object.Destroy(c.gameObject);
-                else
-                    Object.Destroy(loaded);
-                logger.LogError($"Problem loading custom bundle resource \"{file}\". Reason: {metaName} meta asset is not a supported type. Components and GameObjects cannot be used");
-                return false;
-            }
             if (loaded is Texture2D t)
                 t.Compress(true);
             loaded.name = file + "|" + meta[0];

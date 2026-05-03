@@ -49,14 +49,19 @@ namespace SimpleResourceReplacer
                 __result = asset;
                 return false;
             }
+            if (Main.logging)
+                Main.logger.LogInfo($"LoadGameObject  bundle={bd.name},resource={s}");
+            if (Main.SingleAssets.TryGetValue((bd.name, s), out var r) && r.TryReplace(typeof(GameObject), out var nResult))
+            {
+                __result = (GameObject)nResult;
+                return false;
+            }
             return true;
         }
         [HarmonyPatch("LoadGameObject")]
         [HarmonyPostfix]
         static void LoadGameObject(AssetBundle bd, string s, GameObject __result)
         {
-            if (Main.logging)
-                Main.logger.LogInfo($"LoadGameObject  bundle={bd.name},resource={s}");
             PatchMethods.TryChange(bd.name, s, __result);
         }
     }
